@@ -99,6 +99,28 @@ int getNextTask_EDF(int time)
   return next + 1;
 }
 
+int getNextTask_LLF(int time, int maxInd)
+{
+    //Li = Di - (t + [remaining C time])
+    int next = -1;
+    int i = 0, currLaxity = 0;
+    int minLaxity = maxInd;
+    for(i = 0; i<Total_tasks; i++)
+    {
+        if(all_Tasks[i].active == 1)
+        {
+            //                   absolute deadline for curr task         currTime          remaining C time
+            currLaxity = (all_Tasks[i].P * (time / all_Tasks[i].P + 1)) - (time + (all_Tasks[i].C - all_Tasks[i].actualC) );
+            if(currLaxity < minLaxity)
+            {
+                minLaxity = currLaxity;
+                next = i;
+            }
+        }
+    }
+  return next + 1;
+}
+
 
 /*-----------------------------Scheduler----------------------------------*/
 
@@ -125,7 +147,7 @@ int updateNewTasks(int time)
 }
 
 
-int executeScheduler(int maxInd, int* schedEDF, int actualAlgrthm)
+int executeScheduler(int maxInd, int* taskResult, int actualAlgrthm)
 {
   int i = 0;
   int nextTask = 0;
@@ -153,6 +175,7 @@ int executeScheduler(int maxInd, int* schedEDF, int actualAlgrthm)
     switch(actualAlgrthm)
     {
       case LLF:
+        nextTask = getNextTask_LLF(i, maxInd);
         break;
       case EDF:
         nextTask = getNextTask_EDF(i);
@@ -163,14 +186,15 @@ int executeScheduler(int maxInd, int* schedEDF, int actualAlgrthm)
         break;
     }
 
-    // Schedule task selected 
+    // Schedule selected task
     // Take it out of ready list if computation time is finished
-    schedEDF[i] = nextTask;
+    taskResult[i] = nextTask;
     printf("%d -> ", nextTask);
     all_Tasks[nextTask-1].actualC++;
     if(all_Tasks[nextTask-1].actualC == all_Tasks[nextTask-1].C)
       all_Tasks[nextTask-1].active = 0;
   }
+  return status;
 }
 
 /*--------------------------------MCM----------------------------------*/
@@ -227,7 +251,7 @@ void ExecuteEverything()
     if(flagRM) 
     {
       printf("Executing RM\n");
-      executeScheduler(mcm, schedEDF, RM);
+      executeScheduler(mcm, schedRM, RM);
       printf("Executed EDF\n");
     }
     
@@ -241,6 +265,8 @@ void ExecuteEverything()
     if(flagLLF) 
     {
       printf("Executing LLF\n");
+      executeScheduler(mcm, schedLLF, LLF);
+      printf("Executed LLF\n");
     }
   }
   else
