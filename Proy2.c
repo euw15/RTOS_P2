@@ -36,7 +36,7 @@ struct task_Info all_Tasks[MAX_TASKS];
 
 // For GUI
 struct task_widget all_Widgets[MAX_TASKS];
-GtkWidget *window;
+GtkWidget *mainWindow;
 
 GtkWidget *spinC;
 GtkWidget *spinP;
@@ -277,7 +277,7 @@ void updateMCM()
 
 void promptMsg(GtkMessageType type, const char* msg){
   GtkWidget *dialog;
-  dialog = gtk_message_dialog_new (GTK_WINDOW(window),
+  dialog = gtk_message_dialog_new (GTK_WINDOW(mainWindow),
                                  GTK_DIALOG_DESTROY_WITH_PARENT,
                                  type,
                                  GTK_BUTTONS_CLOSE,
@@ -464,9 +464,9 @@ void set_GUI()
   gtk_init(NULL, NULL);
   
   //Initialize Main Window
-  window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  gtk_window_set_title(GTK_WINDOW(window), "RTOS");
-  gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+  mainWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_title(GTK_WINDOW(mainWindow), "RTOS");
+  gtk_window_set_position(GTK_WINDOW(mainWindow), GTK_WIN_POS_CENTER);
 
   /*********** First Frame **********************/
 
@@ -588,17 +588,17 @@ void set_GUI()
   gtk_box_pack_start (GTK_BOX(boxMain), frmMCM, TRUE, TRUE, 10);
   gtk_box_pack_start (GTK_BOX(boxMain), boxOptions, TRUE, TRUE, 10);
   gtk_box_pack_start (GTK_BOX(boxMain), boxRun, TRUE, TRUE, 10);
-  gtk_container_add (GTK_CONTAINER (window), boxMain);
+  gtk_container_add (GTK_CONTAINER (mainWindow), boxMain);
   
 
-  g_signal_connect (window, "delete-event", G_CALLBACK (gtk_main_quit), NULL);
-  g_signal_connect (window, "destroy", G_CALLBACK (gtk_main_quit), NULL);
+  g_signal_connect (mainWindow, "delete-event", G_CALLBACK (gtk_main_quit), NULL);
+  g_signal_connect (mainWindow, "destroy", G_CALLBACK (gtk_main_quit), NULL);
 
   //g_timeout_add(10, update_GUI, table);
 
-  gtk_container_set_border_width (GTK_CONTAINER (window), 10);
+  gtk_container_set_border_width (GTK_CONTAINER (mainWindow), 10);
 
-  gtk_widget_show_all(window);
+  gtk_widget_show_all(mainWindow);
     
   gtk_main ();
 }
