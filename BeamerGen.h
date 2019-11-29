@@ -2,7 +2,7 @@
 #include <math.h>
 
 #define MAX_TIME_COLS 12
-#define MAX_TABLES_PER_SLIDE 2
+#define MAX_TABLES_PER_SLIDE 3
 
 char* gCellColors[MAX_TASKS+1] = 
 {
@@ -196,12 +196,12 @@ void SchedAlgorithmsTestSection(FILE* fp)
 }
 
 // parameter data to be used for determining unused processor times
-void PrintTableHeader(FILE* fp, int startIdx, int* data, int status[2], int alg)
+void PrintTableHeader(FILE* fp, int startIdx, int* data, int dTime, int dTask)
 {
     int i = 0;
     for(i = 0; i < MAX_TIME_COLS; i++)
     {
-        if( (status[0] != 0 && (i + startIdx) > status[1])//a deadline was not honored, scheduler execution halted
+        if( (dTask != 0 && (i + startIdx) > dTime)//a deadline was not honored, scheduler execution halted
             || ((i + startIdx) > gMCM) //we have reached the MCM
           )
             fputs("|a", fp);
@@ -219,7 +219,7 @@ void PrintTableTimes(FILE* fp, int startIdx)
     }
 }
 
-void PrintTableTasks(FILE* fp, int startIdx, int* data, int status[2], int alg)
+void PrintTableTasks(FILE* fp, int startIdx, int* data, int dTime, int dTask)
 {
     int i = 0, j = 0;
     int currTime = 0;
@@ -230,10 +230,15 @@ void PrintTableTasks(FILE* fp, int startIdx, int* data, int status[2], int alg)
         for(j = 0; j < MAX_TIME_COLS; j++)
         {
             currTime = startIdx+j+1;
-            if( (status[0] != 0 && (j + startIdx) > status[1])//a deadline was not honored, scheduler execution halted
+            if( (dTask != 0 && (j + startIdx) >= dTime)//a deadline was not honored, scheduler execution halted
                 || ((j + startIdx) > gMCM) //we have reached the MCM
               )
-                fputs("& ", fp);
+            {
+                if (dTask == (i + 1))//this was the task that missed its deadline
+                    fputs("&\\cellcolor{red}", fp);
+                else
+                    fputs("& ", fp);
+            }
             else if( currTime % all_Tasks[i].P == 0)//mark deadline
             {
                 if( data[startIdx+j] == (i+1) )//current task was scheduled
@@ -277,20 +282,20 @@ void SchedAlgorithmsSimSection(FILE* fp, int (*status)[2], int* RMData, int* EDF
         {
             tCnt = (limit / MAX_TIME_COLS) + (limit % MAX_TIME_COLS ? 1 : 0); // amount of tables to print
             printf("%s  %d table(s), limit: %d \n", pNames[i], tCnt, limit);
-            fprintf(fp, "\\begin{frame}[shrink]{Simulación - %s}\n", pNames[i]);
+            fprintf(fp, "\\begin{frame}[shrink]{Simulación - %s - MCM: %d}\n", pNames[i], gMCM);
             fputs("    \\begin{center}\n", fp);
             for(k = 0; k < tCnt; k++)
             {
                 fputs("    \\begin{table}\n", fp);
                 fputs("        \\begin{tabular}{ c", fp);
-                PrintTableHeader(fp, k * MAX_TIME_COLS, pData[i], status[i], i);
+                PrintTableHeader(fp, k * MAX_TIME_COLS, pData[i], status[i][1], status[i][0]);
                 fputs(" }\n"
                     "            \\hline\n"
                     "            \\rowcolor{LightCyan}\n"
                     "            Tareas", fp);
                 PrintTableTimes(fp, k * MAX_TIME_COLS);
                 fputs(" \\\\ \n            \\hline\n", fp);
-                PrintTableTasks(fp, k * MAX_TIME_COLS, pData[i], status[i], i);
+                PrintTableTasks(fp, k * MAX_TIME_COLS, pData[i], status[i][1], status[i][0]);
                 fputs("            \\hline\n", fp);
                 fputs("        \\end{tabular}\n", fp);
                 fputs("    \\end{table}\n", fp);
@@ -299,11 +304,13 @@ void SchedAlgorithmsSimSection(FILE* fp, int (*status)[2], int* RMData, int* EDF
                 {
                     fputs("    \\end{center}\n", fp);
                     fputs("\\end{frame}\n\n", fp);
-                    fprintf(fp, "\\begin{frame}{Simulación - %s}\n", pNames[i]);
+                    fprintf(fp, "\\begin{frame}[shrink]{Simulación - %s - MCM: %d}\n", pNames[i], gMCM);
                     fputs("    \\begin{center}\n", fp);
                 }
             }
 
+            if(status[i][0] != 0) 
+                fprintf(fp, "    La tarea T%d ha perdido su deadline en el tiempo %d\n", status[i][0], status[i][1]);
             fputs("    \\end{center}\n", fp);
             fputs("\\end{frame}\n\n", fp);
         }

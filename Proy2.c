@@ -59,7 +59,7 @@ gboolean flagSingleOutput;
 /*--------------------------------Beamer----------------------------------*/
 #include "BeamerGen.h" //here because it requires what was defined above
 
-void WriteTex(int* status, int* RMData, int* EDFData, int* LLFData)
+void WriteTex(int (*status)[2], int* RMData, int* EDFData, int* LLFData)
 {
     FILE *fp;
 
@@ -179,7 +179,7 @@ int updateNewTasks(int time)
 }
 
 
-int executeScheduler(int maxInd, int* taskResult, int actualAlgrthm)
+int executeScheduler(int maxInd, int* taskResult, int actualAlgrthm, int* failTime )
 {
   int i = 0;
   int nextTask = 0;
@@ -199,7 +199,8 @@ int executeScheduler(int maxInd, int* taskResult, int actualAlgrthm)
     status = updateNewTasks(i);
     if(status != 0)
     {
-      printf("\nTarea %d no cumplió deadline.", status);
+      printf("\nTarea %d no cumplió deadline. T = %d\n", status, *failTime);
+      *failTime = i;
       break;
     }
 
@@ -226,11 +227,12 @@ int executeScheduler(int maxInd, int* taskResult, int actualAlgrthm)
     if(all_Tasks[nextTask-1].actualC == all_Tasks[nextTask-1].C)
       all_Tasks[nextTask-1].active = 0;
   }
-  if(i = maxInd){
+  if(i == maxInd){
     status = updateNewTasks(i);
     if(status != 0)
     {
-      printf("\nTarea %d no cumplió deadline.\n", status);
+      printf("\nTarea %d no cumplió deadline. T = %d\n", status, *failTime);
+      *failTime = i;
     }
   }
   return status;
@@ -293,13 +295,20 @@ void promptMsg(GtkMessageType type, const char* msg){
 
 void ExecuteEverything()
 {
-  if(Total_tasks > 0)
-  {
     flagRM = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (chbtnRM));
     flagEDF = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (chbtnEDF));
     flagLLF = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (chbtnLLF));
     flagSingleOutput = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (rdbtnSingle));
-
+  if(Total_tasks == 0)
+  {
+    promptMsg(GTK_MESSAGE_ERROR, "Error: At least one task needed.");
+  }
+  else if(!flagRM && !flagEDF && !flagLLF)
+  {
+    promptMsg(GTK_MESSAGE_ERROR, "Error: Check at least one scheduler.");
+  }
+  else
+  {
     int mcm = gMCM = getMCM();
     printf("MCM: %d\n", mcm);
 
@@ -307,26 +316,30 @@ void ExecuteEverything()
     int* schedEDF = (int *) calloc(mcm, sizeof(int));
     int* schedLLF = (int *) calloc(mcm, sizeof(int));
 
-    int status[3];
+    int status[3][2];// {task, time}
+    int time = 0;
 
     if(flagRM) 
     {
       printf("Ejecutando RM\n");
-      status[0] = executeScheduler(mcm, schedRM, RM);
+      status[0][0] = executeScheduler(mcm, schedRM, RM, &time);
+      status[0][1] = time;
       printf("\nSe ha ejecutado EDF\n");
     }
     
     if(flagEDF) 
     {
       printf("Ejecutando EDF\n");
-      status[1] = executeScheduler(mcm, schedEDF, EDF);
+      status[1][0] = executeScheduler(mcm, schedEDF, EDF, &time);
+      status[1][1] = time;
       printf("\nSe ha ejecutado EDF\n");
     }
 
     if(flagLLF) 
     {
       printf("Ejecutando LLF\n");
-      status[2] = executeScheduler(mcm, schedLLF, LLF);
+      status[2][0] = executeScheduler(mcm, schedLLF, LLF, &time);
+      status[2][1] = time;
       printf("\nSe ha ejecutado LLF\n");
     }
 
@@ -335,10 +348,7 @@ void ExecuteEverything()
     system("cd ltx && pdflatex ../RTOS_P2.tex -quiet > /dev/null 2>&1 && mv -f RTOS_P2.pdf ../");
     printf("Se ha generado el reporte PDF\n");
 
-  }
-  else
-  {
-    promptMsg(GTK_MESSAGE_ERROR, "Error: At least one task needed.");
+  
     //ERROR!!!
   }
 
