@@ -1,4 +1,8 @@
 #include <stdio.h>
+#include <math.h>
+
+#define MAX_TIME_COLS 12
+#define MAX_TABLES_PER_SLIDE 3
 
 void StartPresentation(FILE* fp)
 {
@@ -15,8 +19,7 @@ void ClosePresentation(FILE* fp)
     fputs("\\end{document}\n", fp);
 }
 
-void ParametersSection(FILE* fp, gboolean rm, gboolean edf, gboolean llf, struct task_Info* ti, int taskCnt)
-//void ParametersSection(FILE* fp, int rm, int edf, int llf, struct task_Info* ti, int taskCnt)
+void ParametersSection(FILE* fp)
 {
     int i = 0;
     char* string1 = 
@@ -33,21 +36,11 @@ void ParametersSection(FILE* fp, gboolean rm, gboolean edf, gboolean llf, struct
         "                        \\hline\n"
         ;
     char* string2 =
-    /*//------------------------remove----------------->
-        "                        T1 & a & b \\\\ \n"
-        "                        T2 & a & b \\\\ \n"
-        "                        \\hline\n"
-    //------------------------remove-----------------<*/
         "                    \\end{tabular}\n"
         "                \\end{table}\n\n"
         "            \\column{30mm}\n"
         "                Algoritmos seleccionados:\n"
         "                \\begin{enumerate}\n"
-    /*//------------------------remove----------------->
-        "                   \\item RM\n"
-        "                   \\item EDF\n"
-        "                   \\item LLF\n"
-    //------------------------remove-----------------<*/
         ;
     char* string3 =
         "                \\end{enumerate}\n"
@@ -56,25 +49,26 @@ void ParametersSection(FILE* fp, gboolean rm, gboolean edf, gboolean llf, struct
         "\\end{frame}\n\n"
         ;
     fputs(string1, fp);
-    for( i = 0; i < taskCnt; i++)
+    for( i = 0; i < Total_tasks; i++)
     {
-        fprintf(fp, "                        T%d & %d & %d \\\\ \n", i+1, ti[i].C, ti[i].P);
+        fprintf(fp, "                        T%d & %d & %d \\\\ \n", i+1, all_Tasks[i].C, all_Tasks[i].P);
         fputs("                        \\hline\n", fp);
     }
     fputs(string2, fp);
-    if(rm)
+    if(flagRM)
         fputs("                   \\item RM\n", fp);
-    if(edf)
+    if(flagEDF)
         fputs("                   \\item EDF\n", fp);
-    if(llf)
+    if(flagLLF)
         fputs("                   \\item LLF\n", fp);
     fputs(string3, fp);
 }
 
 void SchedAlgorithmsSection(FILE* fp)
 {
-    char* string =
-    "\\section{Algoritmos de calendarización}\n"
+    fputs("\\section{Algoritmos de calendarización}\n", fp);
+
+    char* string1 =
     "\\begin{frame}{Rate Monotonic}\n"
     "    Algoritmo de calendarización de prioridad estática. La prioridad de cada tarea está dada según su período. A menor período, mayor prioridad.\\\\~\\\\\n"
     "    Prueba de calendarizabilidad:\n"
@@ -86,39 +80,206 @@ void SchedAlgorithmsSection(FILE* fp)
     "        n(2^{\\frac{1}{n}} - 1)\n"
     "    \\end{equation}\n"
 
-    "    \\begin{equation} \\label{eq:ej1}\n"
+    "    \\begin{equation} \\label{eq:ej2}\n"
     "        \\prod_{i=1}^{n} {(\\frac{C_i}{T_i} + 1)}\n"
     "        \\leq\n"
     "        2\n"
     "    \\end{equation}\n"
-    "\\end{frame}\n\n"
+    "\\end{frame}\n\n";
 
+    char* string2 =
     "\\begin{frame}{Earliest Deadline First}\n"
     "    Algoritmo de calendarización de prioridad dinámica. La prioridad de cada tarea está dada según la proximidad de su deadline. \n"
     "    En un momento dado, la tarea de mayor prioridad será aquella cuyo deadline esté más próximo a alcanzarse.\\\\~\\\\\n"
     "    Prueba de calendarizabilidad:\n"
-    "    \\begin{equation} \\label{eq:ej1}\n"
+    "    \\begin{equation} \\label{eq:ej3}\n"
     "        U\n"
     "        =\n"
     "        \\sum_{i=1}^{n} \\frac{C_i}{T_i}\n"
     "        <\n"
     "        1\n"
     "    \\end{equation}\n"
-    "\\end{frame}\n\n"
+    "\\end{frame}\n\n";
 
+    char* string3 =
     "\\begin{frame}{Least Laxity First}\n"
     "    Algoritmo de calendarización de prioridad dinámica. La prioridad de cada tarea está dada según la holgura en su tiempo restante de ejecución. \n"
-    "    En cada momento dado, la tarea de mayor prioridad será aquella con el menor valor dado por la siguiente fórmula:\\\\~\\\\\n"
-    "    \\begin{equation} \\label{eq:ej1}\n"
-    "        U\n"
+    "    En cada momento dado, la tarea de mayor prioridad será aquella con el menor valor dado por la siguiente fórmula (holgura/laxity):\\\\~\\\\\n"
+    "    \\begin{equation} \\label{eq:ej4}\n"
+    "        L\\textsubscript{i}\n"
     "        =\n"
-    "        \\sum_{i=1}^{n} \\frac{C_i}{T_i}\n"
-    "        <\n"
-    "        1\n"
+    "        D\\textsubscript{i} - (t\\textsubscript{t} + C\\textsubscript{i}\\textsuperscript{R})\n"
     "    \\end{equation}\n"
+    "    \\textsl{donde D\\textsubscript{i} es el deadline de la tarea, t\\textsubscript{t} el tiempo actual, y C\\textsubscript{i}\\textsuperscript{R}\n"
+    "    el tiempo de computación restante.}\n"
     "\\end{frame}\n\n"
     ;
-    fputs(string, fp);
+
+    if(flagRM)
+        fputs(string1, fp);
+    if(flagEDF)
+        fputs(string2, fp);
+    if(flagLLF)
+        fputs(string3, fp);
+}
+
+void SchedAlgorithmsTestSection(FILE* fp)
+{
+    double U = 0;
+    double Mu = Total_tasks * (pow(2, 1./Total_tasks) - 1);
+    int i = 0;
+    for(i = 0; i < Total_tasks; i++)
+    {
+        U += ((1.0 * all_Tasks[i].C) / all_Tasks[i].P);
+    }
+
+    fputs("\\section{Pruebas de calendarizabilidad}\n", fp);
+
+    if(flagRM)
+    {
+        fprintf(fp,
+            "\\begin{frame}{Calendarizabilidad - RM}\n"
+            "    \\begin{equation} \\label{eq:ej1}\n"
+            "        U\n"
+            "        =\n"
+            "        \\sum_{i=1}^{n} \\frac{C_i}{T_i}\n"
+            "        \\leq\n"
+            "        n(2^{\\frac{1}{n}} - 1)\n"
+            "        \\qquad\n"
+            "        %.3f \\leq %.3f \\qquad \\therefore \n"
+            "    \\end{equation}\n"
+            "    \\begin{center}\n",
+            U, Mu
+        );
+        fputs(U <= Mu ? "El conjunto es calendarizable\n" : 
+            U < 1 ? "No hay certeza de la calendarizabilidad, se requiere prueba manual\n" : "El conjunto no es calendarizable\n",fp);
+        fputs(
+            "    \\end{center}\n"
+            "    \\begin{equation} \\label{eq:ej2}\n"
+            "        \\prod_{i=1}^{n} {(\\frac{C_i}{T_i} + 1)}\n"
+            "        \\leq\n"
+            "        2\n"
+            "    \\end{equation}\n"
+            "\\end{frame}\n\n",
+            fp
+        );
+    }
+
+    if(flagEDF)
+    {
+        fprintf(fp,
+            "\\begin{frame}{Calendarizabilidad - EDF}\n"
+            "    \\begin{equation} \\label{eq:ej3}\n"
+            "        U\n"
+            "        =\n"
+            "        \\sum_{i=1}^{n} \\frac{C_i}{T_i}\n"
+            "        <\n"
+            "        1 \\qquad\n"// a little spacing
+            "        %.3f < 1 \\qquad \\therefore \n"
+            "    \\end{equation}\n"
+            "    \\begin{center}\n", U
+        );
+        fputs(U < 1 ? "El conjunto es calendarizable\n" : "El conjunto no es calendarizable\n", fp);
+        fputs("    \\end{center}\n \\end{frame}\n\n", fp);
+    }
+}
+
+// parameter data to be used for determining unused processor times
+void GetTableHeader(char* header, int startIdx, int* data, int status)
+{
+    char* buffer = header;
+    int i = 0;
+    for(i = 0; i < MAX_TIME_COLS; i++)
+    {
+        if( (status != 0 && (i + startIdx) > status)//a deadline was not honored, scheduler execution halted
+            || ((i + startIdx) > gMCM) //we have reached the MCM
+          )
+            buffer += sprintf(buffer,"|a");
+        else
+            buffer += sprintf(buffer,"|%s", data[i + startIdx] == 0 ? "a" : "c");
+    }
+}
+
+void GetTableTimes(char* header, int startIdx)
+{
+    char* buffer = header;
+    int i = 0;
+    for(i = 0; i < MAX_TIME_COLS; i++)
+    {
+        buffer += sprintf(buffer,"&%d", startIdx+i+1);
+    }
+}
+
+void SchedAlgorithmsSimSection(FILE* fp, int* status, int* RMData, int* EDFData, int* LLFData)
+{
+    fputs("\\section{Simulación de ejecución}\n", fp);
+    int bSelected[3] = {flagRM, flagEDF, flagLLF};
+    int* pData[3] = {RMData, EDFData, LLFData};
+    char* pNames [3] = {"RM", "EDF", "LLF"};
+
+    int i = 0, j = 0, k = 0;
+    int limit = 0, tCnt = 0;
+
+    int tHeaderSize = 2 * MAX_TIME_COLS - 1;
+    int tTimeSize = 3 * MAX_TIME_COLS;
+
+    char* tHeader = (char*) malloc(tHeaderSize);
+    char* tTime = (char*) malloc(tTimeSize);//fix size
+    //char* tTaskData = (char*) malloc(Total_tasks * 2 * MAX_TIME_COLS - 1);//fix size
+
+    for(i = 0; i < 3; i++)
+    {
+        if(!bSelected[i]) continue;
+
+        limit = status[i] == 0 ? gMCM : (status[i] + 1);
+        limit = limit < MAX_TIME_COLS ? MAX_TIME_COLS : limit;
+        if(flagSingleOutput)
+        {
+            tCnt = (limit / MAX_TIME_COLS) + (limit % MAX_TIME_COLS ? 1 : 0); // amount of tables to print
+            printf("%s  %d table(s), limit: %d \n", pNames[i], tCnt, limit);
+            fprintf(fp, "\\begin{frame}{Simulación - %s}\n", pNames[i]);
+            for(k = 0; k < tCnt; k++)
+            {
+                memset(tHeader, '\0', tHeaderSize);
+                memset(tTime, '\0', tTimeSize);
+                GetTableHeader(tHeader, k * MAX_TIME_COLS, pData[i], status[i]);
+                GetTableTimes(tTime, k * MAX_TIME_COLS);
+
+                fputs("    \\begin{table}\n", fp);
+                fprintf(fp,
+                    "        \\begin{tabular}{ c%s }\n"
+                    "            \\hline\n"
+                    "            \\rowcolor{LightCyan}\n"
+                    "            Tareas%s \\\\ \n"
+                    "            \\hline\n"
+                    , tHeader, tTime);
+                for(j = 0; j < Total_tasks; j++)
+                {
+
+                }
+                fputs("            \\hline\n", fp);
+                fputs("        \\end{tabular}\n", fp);
+                fputs("    \\end{table}\n", fp);
+
+                if(k > 0 && k % MAX_TABLES_PER_SLIDE == 0)
+                {
+                    fputs("\\end{frame}\n\n", fp);
+                    fprintf(fp, "\\begin{frame}{Simulación - %s}\n", pNames[i]);
+                }
+            }
+
+            fputs("\\end{frame}\n\n", fp);
+        }
+        else
+        {
+
+        }
+
+    }
+    free(tHeader);
+    free(tTime);
+    //free(tTaskData);
+
 }
 
 void HeaderSection(FILE* fp)

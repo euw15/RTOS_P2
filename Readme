@@ -1,6 +1,6 @@
 To compile 
 
-    gcc -o Proy2 Proy2.c `pkg-config --libs --cflags gtk+-2.0`
+    gcc -o Proy2 Proy2.c `pkg-config --libs --cflags gtk+-2.0` -lm
 
 
 To generate Beamer pdf, browse into ./ltx, then run

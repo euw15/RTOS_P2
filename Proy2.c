@@ -32,6 +32,7 @@ struct task_Info
 // General
 int Total_tasks;
 struct task_Info all_Tasks[MAX_TASKS];
+int gMCM;
 
 
 // For GUI
@@ -53,11 +54,12 @@ GtkWidget *rdbtnMultiple;
 gboolean flagRM;
 gboolean flagEDF;
 gboolean flagLLF;
+gboolean flagSingleOutput;
 
 /*--------------------------------Beamer----------------------------------*/
 #include "BeamerGen.h" //here because it requires what was defined above
 
-void WriteTex(int* status)
+void WriteTex(int* status, int* RMData, int* EDFData, int* LLFData)
 {
     FILE *fp;
 
@@ -69,10 +71,13 @@ void WriteTex(int* status)
 
     StartPresentation(fp);
 
-//v    (FILE* fp, gboolean rm, gboolean edf, gboolean llf, struct task_Info* ti, int taskCnt)
-    ParametersSection(fp, flagRM, flagEDF, flagLLF, all_Tasks, Total_tasks);
+    ParametersSection(fp);
 
     SchedAlgorithmsSection(fp);
+
+    SchedAlgorithmsTestSection(fp);
+
+    SchedAlgorithmsSimSection(fp, status, RMData, EDFData, LLFData);
 
     ClosePresentation(fp);
 
@@ -194,7 +199,7 @@ int executeScheduler(int maxInd, int* taskResult, int actualAlgrthm)
     status = updateNewTasks(i);
     if(status != 0)
     {
-      printf("\nTarea %d no cumplió deadline.\n", status);
+      printf("\nTarea %d no cumplió deadline.", status);
       break;
     }
 
@@ -293,9 +298,9 @@ void ExecuteEverything()
     flagRM = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (chbtnRM));
     flagEDF = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (chbtnEDF));
     flagLLF = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (chbtnLLF));
-    
+    flagSingleOutput = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (rdbtnSingle));
 
-    int mcm = getMCM();
+    int mcm = gMCM = getMCM();
     printf("MCM: %d\n", mcm);
 
     int* schedRM = (int *) calloc(mcm, sizeof(int));
@@ -306,26 +311,29 @@ void ExecuteEverything()
 
     if(flagRM) 
     {
-      printf("Executing RM\n");
+      printf("Ejecutando RM\n");
       status[0] = executeScheduler(mcm, schedRM, RM);
-      printf("Executed EDF\n");
+      printf("\nSe ha ejecutado EDF\n");
     }
     
     if(flagEDF) 
     {
-      printf("Executing EDF\n");
+      printf("Ejecutando EDF\n");
       status[1] = executeScheduler(mcm, schedEDF, EDF);
-      printf("Executed EDF\n");
+      printf("\nSe ha ejecutado EDF\n");
     }
 
     if(flagLLF) 
     {
-      printf("Executing LLF\n");
+      printf("Ejecutando LLF\n");
       status[2] = executeScheduler(mcm, schedLLF, LLF);
-      printf("Executed LLF\n");
+      printf("\nSe ha ejecutado LLF\n");
     }
 
-    WriteTex(status);
+    // Generate .tex and .pdf
+    WriteTex(status, schedRM, schedEDF, schedLLF);
+    system("cd ltx && pdflatex ../RTOS_P2.tex -quiet > /dev/null 2>&1 && mv -f RTOS_P2.pdf ../");
+    printf("Se ha generado el reporte PDF\n");
 
   }
   else
@@ -559,7 +567,7 @@ void set_GUI()
   gtk_container_add (GTK_CONTAINER (frmOutput), boxOutput);
 
   boxSchedulers = gtk_vbox_new (FALSE,0);
-  chbtnRM = gtk_check_button_new_with_label("RM: Rate-Monothonic");
+  chbtnRM = gtk_check_button_new_with_label("RM: Rate-Monotonic");
   chbtnEDF = gtk_check_button_new_with_label("EDF: Earliest Deadline First");
   chbtnLLF = gtk_check_button_new_with_label("LLF: Least Laxity First");
   gtk_box_pack_start (GTK_BOX(boxSchedulers), chbtnRM, FALSE, FALSE, 10);
