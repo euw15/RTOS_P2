@@ -36,12 +36,16 @@ struct task_Info all_Tasks[MAX_TASKS];
 
 // For GUI
 struct task_widget all_Widgets[MAX_TASKS];
+GtkWidget *window;
+
 GtkWidget *spinC;
 GtkWidget *spinP;
 
 GtkWidget *chbtnRM;
 GtkWidget *chbtnEDF;
 GtkWidget *chbtnLLF;
+
+GtkWidget *lblMCM;
 
 GtkWidget *rdbtnSingle;
 GtkWidget *rdbtnMultiple;
@@ -217,6 +221,13 @@ int executeScheduler(int maxInd, int* taskResult, int actualAlgrthm)
     if(all_Tasks[nextTask-1].actualC == all_Tasks[nextTask-1].C)
       all_Tasks[nextTask-1].active = 0;
   }
+  if(i = maxInd){
+    status = updateNewTasks(i);
+    if(status != 0)
+    {
+      printf("\nTarea %d no cumplió deadline.\n", status);
+    }
+  }
   return status;
 }
 
@@ -245,6 +256,7 @@ int calcMCM(int a, int b)
 
 int getMCM()
 {
+  if (Total_tasks == 0) return 0;
   int mcm = all_Tasks[0].P;
   for(int i = 1; i < Total_tasks; i++)
   {
@@ -253,7 +265,26 @@ int getMCM()
   return mcm;
 }
 
+void updateMCM()
+{
+  int MCM = getMCM();
+  char c[20];
+  sprintf(c, "%d\n", MCM);
+  gtk_label_set_text(GTK_LABEL(lblMCM), c);
+}
+
 /*--------------------------------GUI----------------------------------*/
+
+void promptMsg(GtkMessageType type, const char* msg){
+  GtkWidget *dialog;
+  dialog = gtk_message_dialog_new (GTK_WINDOW(window),
+                                 GTK_DIALOG_DESTROY_WITH_PARENT,
+                                 type,
+                                 GTK_BUTTONS_CLOSE,
+                                 "%s", msg);
+  gtk_dialog_run (GTK_DIALOG (dialog));
+  gtk_widget_destroy (dialog);
+}
 
 void ExecuteEverything()
 {
@@ -299,6 +330,7 @@ void ExecuteEverything()
   }
   else
   {
+    promptMsg(GTK_MESSAGE_ERROR, "Error: At least one task needed.");
     //ERROR!!!
   }
 
@@ -345,16 +377,19 @@ void addTask()
         sprintf(c, "%d", all_Tasks[i].P);
         gtk_label_set_text(GTK_LABEL(all_Widgets[i].lbl_P), c);
       }
+      updateMCM();
 
 
     }
     else
     {
+      promptMsg(GTK_MESSAGE_ERROR, "Error: The computation time can not be greater than the period.");
       //ERROR!!!
     }  
   }
   else
   {
+    promptMsg(GTK_MESSAGE_INFO, "6 is maximum number of tasks.");
     //ERROR!!!
   }  
 }
@@ -368,6 +403,7 @@ void deleteTask()
     gtk_label_set_text(GTK_LABEL(all_Widgets[Total_tasks].lbl_P), "");
     all_Tasks[Total_tasks].C = 0;
     all_Tasks[Total_tasks].P = 0;
+    updateMCM();
   }
   else
   {
@@ -385,16 +421,17 @@ void resetTasks()
     all_Tasks[Total_tasks].P = 0;
   }
   Total_tasks=0;
+  updateMCM();
 
 }
 
 void set_GUI()
 {
-  GtkWidget *window;
   GtkWidget *boxMain;
   GtkWidget *boxNewTask;
   GtkWidget *boxNewTaskInfo;
   GtkWidget *boxNewTaskButtons;
+  GtkWidget *boxMCM;
   GtkWidget *boxOptions;
   GtkWidget *boxSchedulers;
   GtkWidget *boxOutput;
@@ -417,9 +454,9 @@ void set_GUI()
 
   GtkWidget *frmNewTask;
   GtkWidget *frmTasks;
+  GtkWidget *frmMCM;
   GtkWidget *frmSchedulers;
   GtkWidget *frmOutput;
-  GtkWidget *frmRun;
 
   GtkWidget *table;
   GtkWidget *label;
@@ -499,8 +536,18 @@ void set_GUI()
   frmTasks = gtk_frame_new ("All Tasks");
   gtk_container_add (GTK_CONTAINER (frmTasks), table);
 
+  /*********** Thirdh Frame **********************/
 
-  /*********** Third Frame **********************/
+  boxMCM = gtk_hbox_new (FALSE,0);
+  lblMCM = gtk_label_new("0\n");
+  updateMCM();
+  gtk_box_pack_start (GTK_BOX(boxMCM), lblMCM, TRUE, FALSE, 50);
+
+  // Create Thirdh frame: MCM
+  frmMCM= gtk_frame_new ("MCM");
+  gtk_container_add (GTK_CONTAINER (frmMCM), boxMCM);
+
+  /*********** Fourth Frame **********************/
 
   boxOutput= gtk_vbox_new (FALSE,0);
   rdbtnSingle = gtk_radio_button_new_with_label (NULL, "Single Slice");
@@ -527,20 +574,18 @@ void set_GUI()
   gtk_box_pack_start (GTK_BOX(boxOptions), frmOutput, TRUE, TRUE, 10);
 
 
-  /*********** Fourth Frame **********************/
+  /*********** Fifth Frame **********************/
   boxRun = gtk_hbox_new (FALSE,0);
   btnRun = gtk_button_new_with_label ("Run");
   gtk_signal_connect (GTK_OBJECT (btnRun), "clicked", GTK_SIGNAL_FUNC (ExecuteEverything), (gpointer) "");
   gtk_box_pack_start (GTK_BOX(boxRun), btnRun, TRUE, FALSE, 10);
-
-  frmRun = gtk_frame_new ("Run");
-  //gtk_container_add (GTK_CONTAINER (frmRun), boxRun);
 
 
   /*********** Main Window **********************/
   boxMain = gtk_vbox_new (FALSE,0);
   gtk_box_pack_start (GTK_BOX(boxMain), frmNewTask, TRUE, TRUE, 10);
   gtk_box_pack_start (GTK_BOX(boxMain), frmTasks, TRUE, TRUE, 10);
+  gtk_box_pack_start (GTK_BOX(boxMain), frmMCM, TRUE, TRUE, 10);
   gtk_box_pack_start (GTK_BOX(boxMain), boxOptions, TRUE, TRUE, 10);
   gtk_box_pack_start (GTK_BOX(boxMain), boxRun, TRUE, TRUE, 10);
   gtk_container_add (GTK_CONTAINER (window), boxMain);
