@@ -2,7 +2,18 @@
 #include <math.h>
 
 #define MAX_TIME_COLS 12
-#define MAX_TABLES_PER_SLIDE 3
+#define MAX_TABLES_PER_SLIDE 2
+
+char* gCellColors[MAX_TASKS+1] = 
+{
+    "\\cellcolor{teal}",
+    "\\cellcolor{magenta}",
+    "\\cellcolor{cyan}",
+    "\\cellcolor{lime}",
+    "\\cellcolor{orange}",
+    "\\cellcolor{yellow}",
+    "\\cellcolor{gray!30}"
+};
 
 void StartPresentation(FILE* fp)
 {
@@ -185,89 +196,115 @@ void SchedAlgorithmsTestSection(FILE* fp)
 }
 
 // parameter data to be used for determining unused processor times
-void GetTableHeader(char* header, int startIdx, int* data, int status)
+void PrintTableHeader(FILE* fp, int startIdx, int* data, int status[2], int alg)
 {
-    char* buffer = header;
     int i = 0;
     for(i = 0; i < MAX_TIME_COLS; i++)
     {
-        if( (status != 0 && (i + startIdx) > status)//a deadline was not honored, scheduler execution halted
+        if( (status[0] != 0 && (i + startIdx) > status[1])//a deadline was not honored, scheduler execution halted
             || ((i + startIdx) > gMCM) //we have reached the MCM
           )
-            buffer += sprintf(buffer,"|a");
+            fputs("|a", fp);
         else
-            buffer += sprintf(buffer,"|%s", data[i + startIdx] == 0 ? "a" : "c");
+            fprintf(fp, "|%s", data[i + startIdx] == 0 ? "a" : "c");
     }
 }
 
-void GetTableTimes(char* header, int startIdx)
+void PrintTableTimes(FILE* fp, int startIdx)
 {
-    char* buffer = header;
     int i = 0;
     for(i = 0; i < MAX_TIME_COLS; i++)
     {
-        buffer += sprintf(buffer,"&%d", startIdx+i+1);
+        fprintf(fp, "&%d", startIdx+i+1);
     }
 }
 
-void SchedAlgorithmsSimSection(FILE* fp, int* status, int* RMData, int* EDFData, int* LLFData)
+void PrintTableTasks(FILE* fp, int startIdx, int* data, int status[2], int alg)
+{
+    int i = 0, j = 0;
+    int currTime = 0;
+
+    for(i = 0; i < Total_tasks; i++)
+    {
+        fprintf(fp, "            T%d", i+1);
+        for(j = 0; j < MAX_TIME_COLS; j++)
+        {
+            currTime = startIdx+j+1;
+            if( (status[0] != 0 && (j + startIdx) > status[1])//a deadline was not honored, scheduler execution halted
+                || ((j + startIdx) > gMCM) //we have reached the MCM
+              )
+                fputs("& ", fp);
+            else if( currTime % all_Tasks[i].P == 0)//mark deadline
+            {
+                if( data[startIdx+j] == (i+1) )//current task was scheduled
+                    fprintf(fp, "&\\mcb{%s}", gCellColors[i]);
+                else if(data[startIdx+j] == 0)//CPU subutilization
+                    fprintf(fp, "&\\mcb{%s}", gCellColors[MAX_TASKS]);
+                else
+                    fputs("&\\mcb{}", fp);
+            }
+            else
+            {
+                if( data[startIdx+j] == (i+1) )//current task was scheduled
+                    fprintf(fp, "&%s", gCellColors[i]);
+                else
+                    fputs("& ", fp);
+            }
+            //fprintf(fp, "&%d", startIdx+j+1);
+
+        }
+        fputs("\\\\ \n", fp);
+    }
+}
+
+void SchedAlgorithmsSimSection(FILE* fp, int (*status)[2], int* RMData, int* EDFData, int* LLFData)
 {
     fputs("\\section{Simulación de ejecución}\n", fp);
     int bSelected[3] = {flagRM, flagEDF, flagLLF};
     int* pData[3] = {RMData, EDFData, LLFData};
     char* pNames [3] = {"RM", "EDF", "LLF"};
 
-    int i = 0, j = 0, k = 0;
+    int i = 0, k = 0;
     int limit = 0, tCnt = 0;
 
-    int tHeaderSize = 2 * MAX_TIME_COLS - 1;
-    int tTimeSize = 3 * MAX_TIME_COLS;
-
-    char* tHeader = (char*) malloc(tHeaderSize);
-    char* tTime = (char*) malloc(tTimeSize);//fix size
-    //char* tTaskData = (char*) malloc(Total_tasks * 2 * MAX_TIME_COLS - 1);//fix size
-
-    for(i = 0; i < 3; i++)
+    for(i = 0; i < 3; i++) // Iterate over all three algoritms
     {
         if(!bSelected[i]) continue;
 
-        limit = status[i] == 0 ? gMCM : (status[i] + 1);
+        limit = status[i][0] == 0 ? gMCM : (status[i][1] + 1);
         limit = limit < MAX_TIME_COLS ? MAX_TIME_COLS : limit;
         if(flagSingleOutput)
         {
             tCnt = (limit / MAX_TIME_COLS) + (limit % MAX_TIME_COLS ? 1 : 0); // amount of tables to print
             printf("%s  %d table(s), limit: %d \n", pNames[i], tCnt, limit);
-            fprintf(fp, "\\begin{frame}{Simulación - %s}\n", pNames[i]);
+            fprintf(fp, "\\begin{frame}[shrink]{Simulación - %s}\n", pNames[i]);
+            fputs("    \\begin{center}\n", fp);
             for(k = 0; k < tCnt; k++)
             {
-                memset(tHeader, '\0', tHeaderSize);
-                memset(tTime, '\0', tTimeSize);
-                GetTableHeader(tHeader, k * MAX_TIME_COLS, pData[i], status[i]);
-                GetTableTimes(tTime, k * MAX_TIME_COLS);
-
                 fputs("    \\begin{table}\n", fp);
-                fprintf(fp,
-                    "        \\begin{tabular}{ c%s }\n"
+                fputs("        \\begin{tabular}{ c", fp);
+                PrintTableHeader(fp, k * MAX_TIME_COLS, pData[i], status[i], i);
+                fputs(" }\n"
                     "            \\hline\n"
                     "            \\rowcolor{LightCyan}\n"
-                    "            Tareas%s \\\\ \n"
-                    "            \\hline\n"
-                    , tHeader, tTime);
-                for(j = 0; j < Total_tasks; j++)
-                {
-
-                }
+                    "            Tareas", fp);
+                PrintTableTimes(fp, k * MAX_TIME_COLS);
+                fputs(" \\\\ \n            \\hline\n", fp);
+                PrintTableTasks(fp, k * MAX_TIME_COLS, pData[i], status[i], i);
                 fputs("            \\hline\n", fp);
                 fputs("        \\end{tabular}\n", fp);
                 fputs("    \\end{table}\n", fp);
 
                 if(k > 0 && k % MAX_TABLES_PER_SLIDE == 0)
                 {
+                    fputs("    \\end{center}\n", fp);
                     fputs("\\end{frame}\n\n", fp);
                     fprintf(fp, "\\begin{frame}{Simulación - %s}\n", pNames[i]);
+                    fputs("    \\begin{center}\n", fp);
                 }
             }
 
+            fputs("    \\end{center}\n", fp);
             fputs("\\end{frame}\n\n", fp);
         }
         else
@@ -276,10 +313,6 @@ void SchedAlgorithmsSimSection(FILE* fp, int* status, int* RMData, int* EDFData,
         }
 
     }
-    free(tHeader);
-    free(tTime);
-    //free(tTaskData);
-
 }
 
 void HeaderSection(FILE* fp)
