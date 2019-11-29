@@ -27,7 +27,6 @@ struct task_Info
   int active;
 };
 
-
 /*--------------------------Global Variables-----------------------------*/
 
 // General
@@ -51,8 +50,32 @@ gboolean flagRM;
 gboolean flagEDF;
 gboolean flagLLF;
 
+/*--------------------------------Beamer----------------------------------*/
+#include "BeamerGen.h" //here because it requires what was defined above
 
-/*--------------------------------EDF----------------------------------*/
+void WriteTex(int* status)
+{
+    FILE *fp;
+
+    fp = fopen("./RTOS_P2.tex", "w");
+    //fprintf(fp, "This is testing for fprintf...\n");
+    //fputs("This is testing for fputs...\n", fp);
+
+    HeaderSection(fp);
+
+    StartPresentation(fp);
+
+//v    (FILE* fp, gboolean rm, gboolean edf, gboolean llf, struct task_Info* ti, int taskCnt)
+    ParametersSection(fp, flagRM, flagEDF, flagLLF, all_Tasks, Total_tasks);
+
+    SchedAlgorithmsSection(fp);
+
+    ClosePresentation(fp);
+
+    fclose(fp);
+}
+
+/*--------------------------------Sched Algorithms----------------------------------*/
 
 int getNextTask_RM()
 {
@@ -248,31 +271,37 @@ void ExecuteEverything()
     int* schedEDF = (int *) calloc(mcm, sizeof(int));
     int* schedLLF = (int *) calloc(mcm, sizeof(int));
 
+    int status[3];
+
     if(flagRM) 
     {
       printf("Executing RM\n");
-      executeScheduler(mcm, schedRM, RM);
+      status[0] = executeScheduler(mcm, schedRM, RM);
       printf("Executed EDF\n");
     }
     
     if(flagEDF) 
     {
       printf("Executing EDF\n");
-      executeScheduler(mcm, schedEDF, EDF);
+      status[1] = executeScheduler(mcm, schedEDF, EDF);
       printf("Executed EDF\n");
     }
 
     if(flagLLF) 
     {
       printf("Executing LLF\n");
-      executeScheduler(mcm, schedLLF, LLF);
+      status[2] = executeScheduler(mcm, schedLLF, LLF);
       printf("Executed LLF\n");
     }
+
+    WriteTex(status);
+
   }
   else
   {
     //ERROR!!!
-  }  
+  }
+
 }
 
 void addTask()
@@ -529,13 +558,6 @@ void set_GUI()
   gtk_main ();
 }
 /*--------------------------------GUI-END------------------------------*/
-
-/*--------------------------------Beamer----------------------------------*/
-void WriteTex()
-{
-    
-}
-/*------------------------------Beamer-END---------------------------------*/
 
 int main(int argc, char *argv[])
 {

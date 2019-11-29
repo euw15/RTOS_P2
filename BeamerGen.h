@@ -1,15 +1,5 @@
 #include <stdio.h>
 
-struct task_Info
-{
-  int C;
-  int P;
-  int actualC;
-  int active;
-};
-
-struct task_Info all_Tasks[6];
-
 void StartPresentation(FILE* fp)
 {
     fputs("\\begin{document}\n"
@@ -25,8 +15,8 @@ void ClosePresentation(FILE* fp)
     fputs("\\end{document}\n", fp);
 }
 
-//void ParametersSection(FILE* fp, gboolean rm, gboolean edf, gboolean llf, struct task_Info* ti, int taskCnt)
-void ParametersSection(FILE* fp, int rm, int edf, int llf, struct task_Info* ti, int taskCnt)
+void ParametersSection(FILE* fp, gboolean rm, gboolean edf, gboolean llf, struct task_Info* ti, int taskCnt)
+//void ParametersSection(FILE* fp, int rm, int edf, int llf, struct task_Info* ti, int taskCnt)
 {
     int i = 0;
     char* string1 = 
@@ -43,21 +33,21 @@ void ParametersSection(FILE* fp, int rm, int edf, int llf, struct task_Info* ti,
         "                        \\hline\n"
         ;
     char* string2 =
-    //------------------------remove----------------->
+    /*//------------------------remove----------------->
         "                        T1 & a & b \\\\ \n"
         "                        T2 & a & b \\\\ \n"
         "                        \\hline\n"
-    //------------------------remove-----------------<
+    //------------------------remove-----------------<*/
         "                    \\end{tabular}\n"
-        "                \\end{table}\n\n\n"
+        "                \\end{table}\n\n"
         "            \\column{30mm}\n"
         "                Algoritmos seleccionados:\n"
         "                \\begin{enumerate}\n"
-    //------------------------remove----------------->
+    /*//------------------------remove----------------->
         "                   \\item RM\n"
         "                   \\item EDF\n"
         "                   \\item LLF\n"
-    //------------------------remove-----------------<
+    //------------------------remove-----------------<*/
         ;
     char* string3 =
         "                \\end{enumerate}\n"
@@ -84,42 +74,49 @@ void ParametersSection(FILE* fp, int rm, int edf, int llf, struct task_Info* ti,
 void SchedAlgorithmsSection(FILE* fp)
 {
     char* string =
-    "\\section{Algoritmos de calendarización}"
-    "\\begin{frame}{Rate Monotonic}"
-    "    Algoritmo de calendarización de prioridad estática. La prioridad de cada tarea está dada según su período. A menor período, mayor prioridad.\\\\~\\\\"
-        
-    "    Prueba de calendarizabilidad:"
+    "\\section{Algoritmos de calendarización}\n"
+    "\\begin{frame}{Rate Monotonic}\n"
+    "    Algoritmo de calendarización de prioridad estática. La prioridad de cada tarea está dada según su período. A menor período, mayor prioridad.\\\\~\\\\\n"
+    "    Prueba de calendarizabilidad:\n"
+    "    \\begin{equation} \\label{eq:ej1}\n"
+    "        U\n"
+    "        =\n"
+    "        \\sum_{i=1}^{n} \\frac{C_i}{T_i}\n"
+    "        \\leq\n"
+    "        n(2^{\\frac{1}{n}} - 1)\n"
+    "    \\end{equation}\n"
 
-    "    \\begin{equation} \\label{eq:ej1}"
-    "        U"
-    "        ="
-    "        \\sum_{i=1}^{n} \\frac{C_i}{T_i}"
-    "        \\leq"
-    "        n(2^{\\frac{1}{n}} - 1)"
-    "    \\end{equation}"
-        
-    "    \\begin{equation} \\label{eq:ej1}"
-    "        \\prod_{i=1}^{n} {(\\frac{C_i}{T_i} + 1)}"
-    "        \\leq"
-    "        2"
-    "    \\end{equation}"
+    "    \\begin{equation} \\label{eq:ej1}\n"
+    "        \\prod_{i=1}^{n} {(\\frac{C_i}{T_i} + 1)}\n"
+    "        \\leq\n"
+    "        2\n"
+    "    \\end{equation}\n"
+    "\\end{frame}\n\n"
 
-    "\\end{frame}"
+    "\\begin{frame}{Earliest Deadline First}\n"
+    "    Algoritmo de calendarización de prioridad dinámica. La prioridad de cada tarea está dada según la proximidad de su deadline. \n"
+    "    En un momento dado, la tarea de mayor prioridad será aquella cuyo deadline esté más próximo a alcanzarse.\\\\~\\\\\n"
+    "    Prueba de calendarizabilidad:\n"
+    "    \\begin{equation} \\label{eq:ej1}\n"
+    "        U\n"
+    "        =\n"
+    "        \\sum_{i=1}^{n} \\frac{C_i}{T_i}\n"
+    "        <\n"
+    "        1\n"
+    "    \\end{equation}\n"
+    "\\end{frame}\n\n"
 
-    "\\begin{frame}{Earliest Deadline First}"
-    "    Algoritmo de calendarización de prioridad dinámica. La prioridad de cada tarea está dada según la proximidad de su deadline. En un momento dado, la tarea de mayor prioridad será aquella cuyo deadline esté más próximo a alcanzarse.\\\\~\\\\"
-        
-    "    Prueba de calendarizabilidad:"
-    "    \\begin{center}"
-//    "        \\includegraphics[]{../figs/EDF_Schedulability.JPG}"
-    "    \\end{center}"
-    "\\end{frame}"
-
-    "\\begin{frame}{Least Laxity First}"
-    "    Algoritmo de calendarización de prioridad dinámica. La prioridad de cada tarea está dada según la proximidad de su deadline. En un momento dado, la tarea de mayor prioridad será aquella cuyo deadline esté más próximo a alcanzarse. BLABLA\\\\~\\\\"
-        
-
-    "\\end{frame}"
+    "\\begin{frame}{Least Laxity First}\n"
+    "    Algoritmo de calendarización de prioridad dinámica. La prioridad de cada tarea está dada según la holgura en su tiempo restante de ejecución. \n"
+    "    En cada momento dado, la tarea de mayor prioridad será aquella con el menor valor dado por la siguiente fórmula:\\\\~\\\\\n"
+    "    \\begin{equation} \\label{eq:ej1}\n"
+    "        U\n"
+    "        =\n"
+    "        \\sum_{i=1}^{n} \\frac{C_i}{T_i}\n"
+    "        <\n"
+    "        1\n"
+    "    \\end{equation}\n"
+    "\\end{frame}\n\n"
     ;
     fputs(string, fp);
 }
@@ -161,25 +158,4 @@ void HeaderSection(FILE* fp)
 
     fputs(header, fp);
     fputs(title, fp);
-}
-
-int main(int argc, char *argv[])
-{
-    FILE *fp;
-
-    fp = fopen("./RTOS_P2.tex", "w");
-    //fprintf(fp, "This is testing for fprintf...\n");
-    //fputs("This is testing for fputs...\n", fp);
-
-    HeaderSection(fp);
-
-    StartPresentation(fp);
-
-    ParametersSection(fp, 0, 0, 0, NULL, 0);
-
-    SchedAlgorithmsSection(fp);
-
-    ClosePresentation(fp);
-
-    fclose(fp);
 }

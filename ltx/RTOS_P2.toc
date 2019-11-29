@@ -1,3 +1,0 @@
-\babel@toc {spanish}{}
-\beamer@sectionintoc {1}{Par\IeC {\'a}metros}{3}{0}{1}
-\beamer@sectionintoc {2}{Algoritmos de calendarizaci\IeC {\'o}n}{4}{0}{2}
