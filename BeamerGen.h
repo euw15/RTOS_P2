@@ -292,7 +292,7 @@ void SchedAlgorithmsSimSection(FILE* fp, int (*status)[2], int* RMData, int* EDF
             if(!bSelected[i]) continue;
 
             limit = status[i][0] == 0 ? gMCM : (status[i][1] + 1);
-            limit = MY_MIN(limit, MAX_TIME_COLS);
+            limit = MY_MAX(limit, MAX_TIME_COLS);
 
             tCnt = (limit / MAX_TIME_COLS) + (limit % MAX_TIME_COLS ? 1 : 0); // amount of tables to print
             printf("%s  %d table(s), limit: %d \n", pNames[i], tCnt, limit);
@@ -314,7 +314,7 @@ void SchedAlgorithmsSimSection(FILE* fp, int (*status)[2], int* RMData, int* EDF
                 fputs("        \\end{tabular}\n", fp);
                 fputs("    \\end{table}\n", fp);
 
-                if(k > 0 && k % MAX_TABLES_PER_SLIDE == 0)
+                if(k > 0 && (k+1) % MAX_TABLES_PER_SLIDE == 0)
                 {
                     fputs("    \\end{center}\n", fp);
                     fputs("\\end{frame}\n\n", fp);

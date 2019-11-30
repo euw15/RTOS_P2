@@ -222,7 +222,7 @@ int executeScheduler(int maxInd, int* taskResult, int actualAlgrthm, int* failTi
     // Schedule selected task
     // Take it out of ready list if computation time is finished
     taskResult[i] = nextTask;
-    printf("%d -> ", nextTask);
+    //printf("%d -> ", nextTask);
     all_Tasks[nextTask-1].actualC++;
     if(all_Tasks[nextTask-1].actualC == all_Tasks[nextTask-1].C)
       all_Tasks[nextTask-1].active = 0;
