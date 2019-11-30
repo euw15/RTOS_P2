@@ -395,7 +395,7 @@ void HeaderSection(FILE* fp)
                     "}\n\n"
                     "\\usepackage{booktabs} %% Allows the use of \\toprule, \\midrule and \\bottomrule in tables\n"
                     ;
-    char* title = "\\title{\\textbf{Proyecto 2}}\n"
+    char* title = "\\title{\\textbf{Proyecto 2: Calendarización en Tiempo Real}}\n"
                   "\\author{\n"
                   "    Luis Arias Gómez \\\\ \n"
                   "    Guillermo López Navarro \\\\ \n"

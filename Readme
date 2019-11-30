@@ -2,7 +2,13 @@ To compile
 
     gcc -o Proy2 Proy2.c `pkg-config --libs --cflags gtk+-2.0` -lm
 
+The following packages are required for running pdflatex
 
-To generate Beamer pdf, browse into ./ltx, then run
+    sudo apt-get install texlive-latex-base texlive-fonts-recommended texlive-fonts-extra texlive-latex-extra
+
+To manually generate Beamer pdf, browse into ./ltx, then run
 
     pdflatex ../RTOS_P2.tex
+
+To run project, simply run ./Proy2 after compilation. This will generate both RTOS_P2.tex and RTOS_P2.pdf. 
+.tex may be found under ltx directory, whereas .pdf will be automatically moved to main binary's directory
