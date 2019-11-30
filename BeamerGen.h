@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <math.h>
 
-#define MAX_TIME_COLS 12
-#define MAX_TABLES_PER_SLIDE 3
+#define MAX_TIME_COLS 10
+#define MAX_TABLES_PER_SLIDE 4
+
+#define MY_MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define MY_MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 char* gCellColors[MAX_TASKS+1] = 
 {
@@ -13,6 +16,11 @@ char* gCellColors[MAX_TASKS+1] =
     "\\cellcolor{orange}",
     "\\cellcolor{yellow}",
     "\\cellcolor{gray!30}"
+};
+
+float gTaskCntPadding[MAX_TASKS] = 
+{
+    1.1, 1.1, 1.1, 1.2, 1.37, 1.55
 };
 
 void StartPresentation(FILE* fp)
@@ -268,21 +276,27 @@ void SchedAlgorithmsSimSection(FILE* fp, int (*status)[2], int* RMData, int* EDF
     int bSelected[3] = {flagRM, flagEDF, flagLLF};
     int* pData[3] = {RMData, EDFData, LLFData};
     char* pNames [3] = {"RM", "EDF", "LLF"};
+    int limits[3] = { // Obtain greatest time to display for each algorithm, set zero for those not selected to run
+        (!bSelected[0] ? 0 : status[0][0] == 0 ? gMCM : (status[0][1] + 1)),
+        (!bSelected[1] ? 0 : status[1][0] == 0 ? gMCM : (status[1][1] + 1)),
+        (!bSelected[2] ? 0 : status[2][0] == 0 ? gMCM : (status[2][1] + 1)),
+    };
 
     int i = 0, k = 0;
     int limit = 0, tCnt = 0;
-
-    for(i = 0; i < 3; i++) // Iterate over all three algoritms
+        
+    if(flagSingleOutput)
     {
-        if(!bSelected[i]) continue;
-
-        limit = status[i][0] == 0 ? gMCM : (status[i][1] + 1);
-        limit = limit < MAX_TIME_COLS ? MAX_TIME_COLS : limit;
-        if(flagSingleOutput)
+        for(i = 0; i < 3; i++) // Iterate over all three algoritms
         {
+            if(!bSelected[i]) continue;
+
+            limit = status[i][0] == 0 ? gMCM : (status[i][1] + 1);
+            limit = MY_MIN(limit, MAX_TIME_COLS);
+
             tCnt = (limit / MAX_TIME_COLS) + (limit % MAX_TIME_COLS ? 1 : 0); // amount of tables to print
             printf("%s  %d table(s), limit: %d \n", pNames[i], tCnt, limit);
-            fprintf(fp, "\\begin{frame}[shrink]{Simulación - %s - MCM: %d}\n", pNames[i], gMCM);
+            fprintf(fp, "\\begin{frame}[shrink]{Simulación - %s (MCM: %d)}\n", pNames[i], gMCM);
             fputs("    \\begin{center}\n", fp);
             for(k = 0; k < tCnt; k++)
             {
@@ -304,7 +318,7 @@ void SchedAlgorithmsSimSection(FILE* fp, int (*status)[2], int* RMData, int* EDF
                 {
                     fputs("    \\end{center}\n", fp);
                     fputs("\\end{frame}\n\n", fp);
-                    fprintf(fp, "\\begin{frame}[shrink]{Simulación - %s - MCM: %d}\n", pNames[i], gMCM);
+                    fprintf(fp, "\\begin{frame}[shrink]{Simulación - %s (MCM: %d)}\n", pNames[i], gMCM);
                     fputs("    \\begin{center}\n", fp);
                 }
             }
@@ -314,11 +328,47 @@ void SchedAlgorithmsSimSection(FILE* fp, int (*status)[2], int* RMData, int* EDF
             fputs("    \\end{center}\n", fp);
             fputs("\\end{frame}\n\n", fp);
         }
-        else
+    }
+    else // Multiple algorithms per slide
+    {
+        k = 0; // For keeping track of how many "cpu times" have we printed so far
+        tCnt = 0; // For keeping track of how many slides have we printed so far
+
+        while(k < limits[0] || k < limits[1] || k < limits[2] ) //keep adding frames while we have pending task schedules
         {
+            tCnt = k / MAX_TIME_COLS;
+            fprintf(fp, "\\begin{frame}[shrink=%d]{Simulación de ejecución (MCM: %d)}\n", MY_MAX(10*Total_tasks, 50), gMCM);
+            fprintf(fp, "\\begin{minipage}[c][%.2f\\paperheight][c]{\\textwidth}", gTaskCntPadding[Total_tasks-1]);
+            fputs("    \\begin{center}\n", fp);
 
+            for(i = 0; i < 3; i++) // Iterate over all three algoritms
+            {
+                if(bSelected[i])//
+                {
+                    fprintf(fp, "    %s \\\\ \n", pNames[i]);
+                    fputs("    \\begin{table}\n", fp);
+                    fputs("        \\begin{tabular}{ c", fp);
+                    PrintTableHeader(fp, tCnt * MAX_TIME_COLS, pData[i], status[i][1], status[i][0]);
+                    fputs(" }\n"
+                        "            \\hline\n"
+                        "            \\rowcolor{LightCyan}\n"
+                        "            Tareas", fp);
+                    PrintTableTimes(fp, tCnt * MAX_TIME_COLS);
+                    fputs(" \\\\ \n            \\hline\n", fp);
+                    PrintTableTasks(fp, tCnt * MAX_TIME_COLS, pData[i], status[i][1], status[i][0]);
+                    fputs("            \\hline\n", fp);
+                    fputs("        \\end{tabular}\n", fp);
+                    fputs("    \\end{table}\n", fp);
+                    if( (k + MAX_TIME_COLS) > limits[i] && status[i][0] != 0) 
+                        fprintf(fp, "    La tarea T%d ha perdido su deadline en el tiempo %d \\\\ \n", status[i][0], status[i][1]);
+                }
+            }
+            fputs("    \\end{center}\n", fp);
+            fputs("\\end{minipage}\n\n", fp);
+            fputs("\\end{frame}\n\n", fp);
+
+            k += MAX_TIME_COLS;
         }
-
     }
 }
 
@@ -345,7 +395,7 @@ void HeaderSection(FILE* fp)
                     "}\n\n"
                     "\\usepackage{booktabs} %% Allows the use of \\toprule, \\midrule and \\bottomrule in tables\n"
                     ;
-    char* title = "\\title{\\textbf{Titulo}}\n"//OOOOOOOOOOOOOJJJJJJOOOOOOOOOOOOOOOOOO
+    char* title = "\\title{\\textbf{Proyecto 2}}\n"
                   "\\author{\n"
                   "    Luis Arias Gómez \\\\ \n"
                   "    Guillermo López Navarro \\\\ \n"

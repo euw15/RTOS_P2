@@ -568,8 +568,8 @@ void set_GUI()
   /*********** Fourth Frame **********************/
 
   boxOutput= gtk_vbox_new (FALSE,0);
-  rdbtnSingle = gtk_radio_button_new_with_label (NULL, "Single Slice");
-  rdbtnMultiple = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON (rdbtnSingle), "Multiple Slices");
+  rdbtnSingle = gtk_radio_button_new_with_label (NULL, "One algorithm at a time ");
+  rdbtnMultiple = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON (rdbtnSingle), "Multiple algoritms per Slide");
   gtk_box_pack_start (GTK_BOX(boxOutput), rdbtnSingle, FALSE, FALSE, 10);
   gtk_box_pack_start (GTK_BOX(boxOutput), rdbtnMultiple, TRUE, FALSE, 10);
 
