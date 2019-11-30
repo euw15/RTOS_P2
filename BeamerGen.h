@@ -359,7 +359,7 @@ void SchedAlgorithmsSimSection(FILE* fp, int (*status)[2], int* RMData, int* EDF
                     fputs("            \\hline\n", fp);
                     fputs("        \\end{tabular}\n", fp);
                     fputs("    \\end{table}\n", fp);
-                    if( (k + MAX_TIME_COLS) > limits[i] && status[i][0] != 0) 
+                    if( (k + MAX_TIME_COLS) >= limits[i] && status[i][0] != 0) 
                         fprintf(fp, "    La tarea T%d ha perdido su deadline en el tiempo %d \\\\ \n", status[i][0], status[i][1]);
                 }
             }
